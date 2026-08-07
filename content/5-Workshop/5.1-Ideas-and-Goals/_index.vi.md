@@ -35,4 +35,4 @@ Giải pháp của chúng ta là xây dựng một hệ thống **Điểm danh b
 
 Hệ thống được thiết kế theo mô hình **Serverless 100%** trên AWS, giúp tối ưu chi phí và tự động mở rộng (Auto-scaling).
 
-![Sơ đồ kiến trúc hệ thống](/content/5-Workshop/5.1-Ideas-and-Goals/dia.jpg)
+![Sơ đồ kiến trúc hệ thống](content/5-Workshop/5.1-Ideas-and-Goals/dia.jpg)
