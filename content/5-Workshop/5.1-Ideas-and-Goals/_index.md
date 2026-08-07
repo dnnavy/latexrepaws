@@ -35,6 +35,6 @@ Our solution is to build a **Real-time QR Attendance** system on the Cloud.
 
 The system is designed with a **100% Serverless** architecture on AWS, optimizing costs and enabling automatic scaling.
 
-![System Architecture Diagram](dia.jpg)
+![System Architecture Diagram](/content/5-Workshop/5.1-Ideas-and-Goals/dia.jpg)
 
 
