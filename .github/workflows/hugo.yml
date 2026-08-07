@@ -74,22 +74,70 @@ jobs:
       - name: Convert Hugo content to LaTeX
         run: python3 scripts/convert_hugo_to_latex.py
 
+      # ===== STEP MỚI: SỬA ĐƯỜNG DẪN ẢNH & COPY ẢNH =====
+      - name: Fix image paths and copy images for LaTeX
+        run: |
+          cd report
+
+          echo "=== 1. Fixing image paths in .tex files ==="
+
+          # Sửa content/5-Workshop/5.1-Ideas-and-Goals/dia.jpg -> dia.jpg
+          find generated/ -name "*.tex" -exec sed -i -E \
+            's|content/[^}]*/([^/}]+\\.(png|jpg|jpeg|pdf))|\1|g' {} \;
+
+          # Sửa static/images/... -> images/...
+          find generated/ -name "*.tex" -exec sed -i \
+            's|static/images/|images/|g' {} \;
+
+          # Sửa /fcj-workshop-template/static/images/... -> images/...
+          find generated/ -name "*.tex" -exec sed -i \
+            's|/fcj-workshop-template/static/images/|images/|g' {} \;
+
+          echo "  ✓ Done"
+
+          echo ""
+          echo "=== 2. Copying static/images -> report/images ==="
+          mkdir -p images
+          if [ -d "../static/images" ]; then
+            cp -r ../static/images/* images/ 2>/dev/null || true
+            echo "  ✓ Copied static/images"
+          else
+            echo "  ⚠ static/images not found"
+          fi
+
+          echo ""
+          echo "=== 3. Copying images from content/ -> report/generated/ ==="
+          COUNT=0
+          for img in $(find ../content -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" \)); do
+            fname=$(basename "$img")
+            if [ ! -f "generated/$fname" ]; then
+              cp "$img" "generated/$fname"
+              COUNT=$((COUNT + 1))
+            fi
+          done
+          echo "  ✓ Copied $COUNT images"
+
+          echo ""
+          echo "=== Verification ==="
+          echo "Images in generated/: $(ls generated/*.png generated/*.jpg generated/*.jpeg 2>/dev/null | wc -l) files"
+          echo "=== Done ==="
+
       - name: Compile Vietnamese PDF
         working-directory: report
         run: |
-          latexmk -pdf -interaction=nonstopmode main.tex
-          latexmk -pdf -interaction=nonstopmode main.tex
-          latexmk -pdf -interaction=nonstopmode main.tex
+          latexmk -pdf -interaction=nonstopmode -f main.tex
+          latexmk -pdf -interaction=nonstopmode -f main.tex
+          latexmk -pdf -interaction=nonstopmode -f main.tex
           cp main.pdf ../report_vn.pdf
 
       - name: Compile English PDF
         working-directory: report
         run: |
-          latexmk -pdf -interaction=nonstopmode main_en.tex
-          latexmk -pdf -interaction=nonstopmode main_en.tex
-          latexmk -pdf -interaction=nonstopmode main_en.tex
+          latexmk -pdf -interaction=nonstopmode -f main_en.tex
+          latexmk -pdf -interaction=nonstopmode -f main_en.tex
+          latexmk -pdf -interaction=nonstopmode -f main_en.tex
           cp main_en.pdf ../report_en.pdf
-      
+
       - name: Package LaTeX source
         run: |
           zip -r latex_source.zip report scripts content config.toml \
