@@ -4,6 +4,10 @@ import subprocess
 import sys
 import tempfile
 import yaml
+import shutil
+import os
+import re
+from pathlib import Path
 
 CONTENT_DIR = "content"
 OUTPUT_DIR = "report/generated"
@@ -881,3 +885,48 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         sys.exit(1)
+
+REPORT_DIR = Path("report")
+GENERATED_DIR = REPORT_DIR / "generated"
+CONTENT_DIR = Path("content")
+STATIC_DIR = Path("static")
+
+def fix_image_paths_and_copy():
+    """
+    1. Sửa đường dẫn tuyệt đối /fcj-workshop-template/... thành tương đối
+    2. Copy ảnh từ content/ và static/ vào thư mục generated
+    """
+    
+    # --- Bước 1: Sửa absolute path trong tất cả file .tex ---
+    for tex_file in GENERATED_DIR.rglob("*.tex"):
+        content = tex_file.read_text(encoding="utf-8")
+        # Sửa /fcj-workshop-template/static/images/ -> images/
+        content = content.replace(
+            "/fcj-workshop-template/static/images/", "images/"
+        )
+        tex_file.write_text(content, encoding="utf-8")
+    
+    # --- Bước 2: Copy ảnh từ static/images vào report/images ---
+    static_images = REPORT_DIR / "images"
+    static_images.mkdir(exist_ok=True)
+    if (STATIC_DIR / "images").exists():
+        shutil.copytree(
+            STATIC_DIR / "images", static_images, dirs_exist_ok=True
+        )
+    
+    # --- Bước 3: Copy ảnh từ content/5-Workshop/*/ vào generated/ ---
+    # Mỗi ảnh trong content/X/Y/image.png → generated/image.png
+    for img in CONTENT_DIR.rglob("*"):
+        if img.suffix.lower() in (".png", ".jpg", ".jpeg", ".pdf"):
+            # Copy vào thư mục gốc generated (vì .tex gọi tên trần)
+            dest = GENERATED_DIR / img.name
+            if not dest.exists():
+                shutil.copy2(img, dest)
+                print(f"  ✓ Copied: {img} -> {dest}")
+
+    print("✅ Image paths fixed and images copied.")
+
+# Gọi sau khi convert xong
+if __name__ == "__main__":
+    # ... code convert chính của bạn ...
+    fix_image_paths_and_copy()
