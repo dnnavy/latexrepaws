@@ -4,10 +4,6 @@ import subprocess
 import sys
 import tempfile
 import yaml
-import shutil
-import os
-import re
-from pathlib import Path
 
 CONTENT_DIR = "content"
 OUTPUT_DIR = "report/generated"
@@ -880,71 +876,8 @@ if __name__ == "__main__":
             build_include_file(lang, pages, containers)
             print()
 
-        print("=== Fixing image paths & copying images ===\n")
-        fix_image_paths_and_copy()
-
         print("Done.")
 
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         sys.exit(1)
-
-from pathlib import Path
-
-_REPORT_DIR = Path("report")
-_GENERATED_DIR = _REPORT_DIR / "generated"
-_CONTENT_DIR_FOR_IMG = Path("content")
-_STATIC_DIR = Path("static")
-
-def fix_image_paths_and_copy():
-    """
-    1. Sửa đường dẫn tuyệt đối trong file .tex
-    2. Copy ảnh từ static/images vào report/images
-    3. Copy ảnh từ content/ vào report/generated/ (cho ảnh gọi tên trần)
-    """
-    if not _GENERATED_DIR.exists():
-        print("  ⚠ generated/ not found, skipping image fix")
-        return
-
-    # --- Bước 1: Sửa đường dẫn trong file .tex ---
-    for tex_file in _GENERATED_DIR.rglob("*.tex"):
-        content = tex_file.read_text(encoding="utf-8")
-
-        # Sửa: content/5-Workshop/5.1-Ideas-and-Goals/dia.jpg -> dia.jpg
-        content = re.sub(
-            r'content/[^}]*/([^/}]+\.(?:png|jpg|jpeg|pdf))',
-            r'\1',
-            content
-        )
-        # Sửa: static/images/2-Proposal/platform_architecture.jpeg -> images/2-Proposal/platform_architecture.jpeg
-        content = content.replace("static/images/", "images/")
-
-        # Sửa: /fcj-workshop-template/static/images/... -> images/...
-        content = content.replace("/fcj-workshop-template/static/images/", "images/")
-
-        tex_file.write_text(content, encoding="utf-8")
-
-    print("  ✓ Fixed image paths in .tex files")
-    # --- Bước 2: Copy static/images -> report/images ---
-    target_images = _REPORT_DIR / "images"
-    target_images.mkdir(exist_ok=True)
-
-    if (_STATIC_DIR / "images").exists():
-        for src_file in (_STATIC_DIR / "images").rglob("*"):
-            if src_file.is_file() and src_file.suffix.lower() in (".png", ".jpg", ".jpeg", ".pdf"):
-                rel = src_file.relative_to(_STATIC_DIR / "images")
-                dest = target_images / rel
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(src_file, dest)
-        print(f"  ✓ Copied static/images -> report/images")
-
-    # --- Bước 3: Copy ảnh từ content/ -> report/generated/ ---
-    count = 0
-    for img in _CONTENT_DIR_FOR_IMG.rglob("*"):
-        if img.is_file() and img.suffix.lower() in (".png", ".jpg", ".jpeg"):
-            dest = _GENERATED_DIR / img.name
-            if not dest.exists():
-                shutil.copy2(img, dest)
-                count += 1
-
-    print(f"  ✓ Copied {count} images from content/ -> report/generated/")
