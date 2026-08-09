@@ -74,8 +74,8 @@ jobs:
       - name: Convert Hugo content to LaTeX
         run: python3 scripts/convert_hugo_to_latex.py
 
-      # ===== STEP MỚI: SỬA ĐƯỜNG DẪN ẢNH & COPY ẢNH =====
-      - name: Fix image paths and copy images for LaTeX
+      # ===== STEP MỚI: COPY TẤT CẢ ẢNH & SETUP GRAPHICSPATH =====
+      - name: Copy images and setup for LaTeX compilation
         run: |
           cd report
 
@@ -98,33 +98,28 @@ jobs:
           fi
 
           echo ""
-          echo "=== 4. Fixing image paths in .tex files ==="
-
-          # Sửa content/*/folder/image.png -> images/image.png
-          find generated/ -name "*.tex" -exec sed -i -E \
-            's|content/[^}]*/([^/}]+\.(png|jpg|jpeg|pdf))|images/\1|g' {} \;
-
-          # Sửa static/images/image.png -> images/image.png
-          find generated/ -name "*.tex" -exec sed -i \
-            's|static/images/|images/|g' {} \;
-
-          # Sửa /fcj-workshop-template/static/images/ -> images/
-          find generated/ -name "*.tex" -exec sed -i \
-            's|/fcj-workshop-template/static/images/|images/|g' {} \;
-
-          echo "  ✓ Fixed all image paths"
+          echo "=== 4. Creating graphicspath.tex with image directory configuration ==="
+          cat > graphicspath.tex << 'EOF'
+\makeatletter
+\g@addto@macro\Gin@extensions{,.PDF,.pdf,.Pdf}
+\makeatother
+\graphicspath{{images/}{}{./}{../}}
+EOF
+          echo "  ✓ Created graphicspath.tex"
 
           echo ""
           echo "=== Verification ==="
           IMAGE_COUNT=$(find generated/images -type f 2>/dev/null | wc -l)
           echo "Images in generated/images/: $IMAGE_COUNT files"
-          echo "Sample .tex references:"
-          grep -h "includegraphics" generated/*.tex 2>/dev/null | head -3 || echo "  (no references yet)"
+          echo "Sample images:"
+          ls generated/images/ 2>/dev/null | head -5 || echo "  (no images)"
           echo "=== Done ==="
 
       - name: Compile Vietnamese PDF
         working-directory: report
         run: |
+          # Include graphicspath before main content
+          sed -i '1s/^/\\input{graphicspath}\n/' generated/en/*.tex generated/vi/*.tex 2>/dev/null || true
           latexmk -pdf -interaction=nonstopmode -f main.tex
           latexmk -pdf -interaction=nonstopmode -f main.tex
           latexmk -pdf -interaction=nonstopmode -f main.tex
