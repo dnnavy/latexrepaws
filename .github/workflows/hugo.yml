@@ -79,47 +79,47 @@ jobs:
         run: |
           cd report
 
-          echo "=== 1. Fixing image paths in .tex files ==="
-
-          # Sửa content/5-Workshop/5.1-Ideas-and-Goals/dia.jpg -> dia.jpg
-          find generated/ -name "*.tex" -exec sed -i -E \
-            's|content/[^}]*/([^/}]+\\.(png|jpg|jpeg|pdf))|\1|g' {} \;
-
-          # Sửa static/images/... -> images/...
-          find generated/ -name "*.tex" -exec sed -i \
-            's|static/images/|images/|g' {} \;
-
-          # Sửa /fcj-workshop-template/static/images/... -> images/...
-          find generated/ -name "*.tex" -exec sed -i \
-            's|/fcj-workshop-template/static/images/|images/|g' {} \;
-
-          echo "  ✓ Done"
+          echo "=== 1. Creating images directory ==="
+          mkdir -p generated/images
 
           echo ""
-          echo "=== 2. Copying static/images -> report/images ==="
-          mkdir -p images
+          echo "=== 2. Copying all images from content/ ==="
+          find ../content -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.pdf" \) \
+            -exec cp {} generated/images/ \; 2>/dev/null || true
+          echo "  ✓ Copied images from content/"
+
+          echo ""
+          echo "=== 3. Copying images from static/images ==="
           if [ -d "../static/images" ]; then
-            cp -r ../static/images/* images/ 2>/dev/null || true
+            cp -r ../static/images/* generated/images/ 2>/dev/null || true
             echo "  ✓ Copied static/images"
           else
             echo "  ⚠ static/images not found"
           fi
 
           echo ""
-          echo "=== 3. Copying images from content/ -> report/generated/ ==="
-          COUNT=0
-          for img in $(find ../content -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" \)); do
-            fname=$(basename "$img")
-            if [ ! -f "generated/$fname" ]; then
-              cp "$img" "generated/$fname"
-              COUNT=$((COUNT + 1))
-            fi
-          done
-          echo "  ✓ Copied $COUNT images"
+          echo "=== 4. Fixing image paths in .tex files ==="
+
+          # Sửa content/*/folder/image.png -> images/image.png
+          find generated/ -name "*.tex" -exec sed -i -E \
+            's|content/[^}]*/([^/}]+\.(png|jpg|jpeg|pdf))|images/\1|g' {} \;
+
+          # Sửa static/images/image.png -> images/image.png
+          find generated/ -name "*.tex" -exec sed -i \
+            's|static/images/|images/|g' {} \;
+
+          # Sửa /fcj-workshop-template/static/images/ -> images/
+          find generated/ -name "*.tex" -exec sed -i \
+            's|/fcj-workshop-template/static/images/|images/|g' {} \;
+
+          echo "  ✓ Fixed all image paths"
 
           echo ""
           echo "=== Verification ==="
-          echo "Images in generated/: $(ls generated/*.png generated/*.jpg generated/*.jpeg 2>/dev/null | wc -l) files"
+          IMAGE_COUNT=$(find generated/images -type f 2>/dev/null | wc -l)
+          echo "Images in generated/images/: $IMAGE_COUNT files"
+          echo "Sample .tex references:"
+          grep -h "includegraphics" generated/*.tex 2>/dev/null | head -3 || echo "  (no references yet)"
           echo "=== Done ==="
 
       - name: Compile Vietnamese PDF
