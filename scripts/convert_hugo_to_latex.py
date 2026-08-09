@@ -45,6 +45,13 @@ LATEX_SPECIALS = {
     "^": r"\textasciicircum{}",
 }
 
+# GraphicsPath configuration to prepend to generated LaTeX files
+GRAPHICS_PATH_PREAMBLE = r"""\makeatletter
+\g@addto@macro\Gin@extensions{,.PDF,.pdf,.Pdf}
+\makeatother
+\graphicspath{{images/}{}{./}{../}}
+"""
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -811,6 +818,10 @@ def build_include_file(lang, pages, containers):
     lines.append(r"\providecommand{\tightlist}{%")
     lines.append(r"  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}%")
     lines.append(r"}")
+    lines.append("")
+
+    # Add graphics path configuration
+    lines.append(GRAPHICS_PATH_PREAMBLE)
     lines.append("")
 
     lines.append(f"\\section{{{sanitize_latex_text(top_body)}}}")
